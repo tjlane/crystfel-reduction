@@ -1,0 +1,38 @@
+# for swissFEL
+
+beamline: "alvra"
+experiment_id: "p21958"
+detector_geometry_name: "JF06T08V07"
+
+allowed_laser_states:
+ - "light"
+ - "dark"
+ - "all"
+
+list_file_directory_path: "/das/work/p21/p21958/list-files"
+initial_geometry_file_path: "/das/home/ext-lane_t/opt/mmCPD-reduction/cpdred/swissfel/data/JF06T08V07.geom"
+cell_file_path: "/das/home/ext-lane_t/opt/mmCPD-reduction/cpdred/swissfel/data/X3S1.cell"
+cell:
+  - 83.22
+  - 83.22
+  - 89.97
+  - 90.0
+  - 90.0
+  - 120.0
+
+geometry_summary_path: "/das/home/ext-lane_t/opt/mmCPD-reduction/cpdred/swissfel/data/geometry_summary.csv"
+geometry_optimization_directory: "/das/work/p21/p21958/geometry-optimization"
+
+# Indexing parameters
+crystfel_version: "0.11.1"
+number_of_cores: 36
+peak_finding_method: "peakfinder8"
+peak_threshold: 50
+min_snr: 5.0
+min_pixel_count: 2
+min_resolution: 85
+max_resolution: 3000
+indexing_method: "xgandalf-latt-cell"
+integration_radius: "2,3,6"
+integration_method: "rings-grad"
+local_bg_radius: 4

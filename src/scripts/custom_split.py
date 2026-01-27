@@ -25,14 +25,14 @@ def find_event_integers(filename: str) -> list[int]:
 
 
 def glob_streams(tag: str, which: str) -> list[str]:
-    pattern = f"/sf/alvra/data/p21958/res/run*-{tag}/index/{which}/acq*.stream"
+    pattern = f"/sf/alvra/data/p21958/res/run*-{tag}/index/{which}/acq*.stream"  
     return glob.glob(pattern)
 
 
 def make_list(tag: str):
 
-    with open("./custom-split.lst", "w") as f:
-        for which in ["dark", "light"]:
+    with open("./custom-split.lst", "w") as f: # TODO: yaml
+        for which in ["dark", "light"]: # TODO: yaml
             i = 0
 
             for stream in glob_streams(tag, which):

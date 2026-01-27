@@ -1,38 +1,44 @@
 
 import os
 import tempfile
+from pathlib import Path
 
 from . import utils
+from . import swissfel
 
 
-def launch_indexing_job(*, list_file, geometry_file, cell_file, output_stream_path):
+def launch_indexing_job(*, list_file: Path, geometry_file: Path, output_stream_path: Path, config: swissfel.SwissFELConfig) -> int:
 
     with tempfile.TemporaryDirectory() as tempdir:
-        cryst_run_file = os.path.join(tempdir, f"indexing_sbatch.sh")
+        script_path = os.path.join(tempdir, "indexing_sbatch.sh")
 
-        with open(cryst_run_file, "w") as run_sh:
-            run_sh.write("#!/bin/sh\n\n")
-            run_sh.write("module purge\n")
-            run_sh.write("module load crystfel/0.11.1\n")
-            #
-            run_sh.write(f"indexamajig -i {list_file} \\\n")
-            run_sh.write(f"  --output={output_stream_path} \\\n")
-            run_sh.write(f"  --geometry={geometry_file} \\\n")
-            run_sh.write(f"  --pdb={cell_file} \\\n")
-            run_sh.write("  -j 36 \\\n")
-            run_sh.write("  --peaks=peakfinder8 \\\n")
-            run_sh.write("  --threshold=50 \\\n")
-            run_sh.write("  --min-snr=5 \\\n")
-            run_sh.write("  --min-pix-count=2 \\\n")
-            run_sh.write("  --min-res=85 \\\n")
-            run_sh.write("  --max-res=3000 \\\n")
-            run_sh.write("  --indexing=xgandalf-latt-cell \\\n")
-            run_sh.write("  --multi --retry --check-peaks \\\n")
-            run_sh.write("  --int-radius=2,3,6 \\\n")
-            run_sh.write("  --integration=rings-grad \\\n")
-            run_sh.write("  --local-bg-radius=4 \\\n")
+        script_content = f"""#!/bin/sh
 
-        job_id = utils.submit_job(cryst_run_file)
+module purge
+module load crystfel/{config.crystfel_version}
 
-    # return crystfel file name
+indexamajig -i {list_file} \\
+  --output={output_stream_path} \\
+  --geometry={geometry_file} \\
+  --pdb={config.cell_file_path} \\
+  -j {config.number_of_cores} \\
+  --peaks={config.peak_finding_method} \\
+  --threshold={config.peak_threshold} \\
+  --min-snr={config.min_snr} \\
+  --min-pix-count={config.min_pixel_count} \\
+  --min-res={config.min_resolution} \\
+  --max-res={config.max_resolution} \\
+  --indexing={config.indexing_method} \\
+  
+  --int-radius={config.integration_radius} \\
+  --integration={config.integration_method} \\
+  --local-bg-radius={config.local_bg_radius} \\
+  --multi --retry --check-peaks
+"""
+
+        with open(script_path, "w") as f:
+            f.write(script_content)
+
+        job_id = utils.submit_job(script_path)
+
     return job_id

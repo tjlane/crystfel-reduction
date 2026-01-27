@@ -10,6 +10,26 @@ from pathlib import Path
 from . import utils
 
 
+
+def geometry_file_for_run(run_number: int) -> Path:
+
+    geometry_summary = pd.read_csv(config.geometry_summary)
+    optimized_base_path = config.geometry_optimization_directory
+
+    match = geometry_summary.loc[geometry_summary["run_number"] == run_number, "geometry_run"]
+    if not match.empty:
+        geometry_run_number = int(match.iloc[0])
+    else:
+        print(f"issue finding matching geometry for run {run_number}")
+
+    geometry_file_path = optimized_base_path / Path(f"run{geometry_run_number:04d}/{geometry_run_number:04d}_optimized.geom")
+    
+    if not geometry_file_path.exists():
+        raise IOError(f"file: {str(geometry_file_path)} not on disk!")
+
+    return geometry_file_path
+
+
 def subsample_lst_file(lst_file_path: str, sample_size: int) -> str:
     # create sample of images from run
     # read h5.lst - note - removes // from image column
