@@ -1,2 +1,3 @@
-# swissfel-reduction
-perform data reduction at SwissFEL using crystFEL
+# crystfel-reduction
+perform data reduction using crystFEL -- for now at swissFEL
+

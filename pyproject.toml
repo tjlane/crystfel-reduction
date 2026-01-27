@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crystred"
+version = "0.0.1"
+authors = [
+    {name = "TJ Lane", email = "thomas.lane@desy.de"},
+]
+description = "tooling to help run crystfel"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+]
+
+[tool.setuptools]
+package-dir = {"crystred" = "src"}
+packages = ["crystred", "crystred.scripts"]
