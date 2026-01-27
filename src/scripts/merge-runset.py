@@ -5,19 +5,20 @@ import argparse
 import tempfile
 from pathlib import Path
 
-from cpdred.swissfel.proc import utils, constants
+from .. import utils
+from .. import swissfel
 
+# TODO: online vs offline mode (!)
 
 def launch_merge_job(
         *,
         name: str,
         runs: list[int],
-        cell_file: Path,
-        stats_highres: float,
         stream_location: Path,
         results_location: Path,
         mtz_location: Path,
-        laser_state: str = "light",
+        laser_state: str,
+        config: swissfel.SwissFELConfig
     ):
 
     queue = "week"
@@ -31,7 +32,7 @@ def launch_merge_job(
     sbatch_script_text = f"""#!/bin/sh
 
 module purge
-module load crystfel/0.11.1
+module load crystfel/{config.crystfel_version}
 
 WD={results_location}/{name}
 echo $WD
@@ -40,18 +41,18 @@ cd $WD
 
 {combine_stream_command}
 
-partialator -j 36 -i {name}_combined_{laser_state}.stream -o {name}_{laser_state}.hkl -y {symmetry} --model=unity --iterations=3 --push-res=2.2 --max-adu=450000 > partialator.log 2>&1
+partialator -j {config.number_of_cores} -i {name}_combined_{laser_state}.stream -o {name}_{laser_state}.hkl -y {symmetry} --model={config.partiality_model} --iterations={config.partialator_iterations} --push-res={config.pushres} --max-adu={config.max_adu} > partialator.log 2>&1
 
-check_hkl {name}_{laser_state}.hkl -y {symmetry} -p {cell_file} --highres={stats_highres} --shell-file={name}_{laser_state}_check.dat
+check_hkl {name}_{laser_state}.hkl -y {symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --shell-file={name}_{laser_state}_check.dat
 
-compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {symmetry} -p {cell_file} --highres={stats_highres} --fom=rsplit --shell-file={name}_{laser_state}_rsplit.dat
-compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {symmetry} -p {cell_file} --highres={stats_highres} --fom=ccstar --shell-file={name}_{laser_state}_ccstar.dat
-compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {symmetry} -p {cell_file} --highres={stats_highres} --fom=cc     --shell-file={name}_{laser_state}_cc.dat
+compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --fom=rsplit --shell-file={name}_{laser_state}_rsplit.dat
+compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --fom=ccstar --shell-file={name}_{laser_state}_ccstar.dat
+compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --fom=cc     --shell-file={name}_{laser_state}_cc.dat
 
 mkdir stats
 mv {name}_{laser_state}_check.dat {name}_{laser_state}_rsplit.dat {name}_{laser_state}_ccstar.dat {name}_{laser_state}_cc.dat stats/
 
-get_hkl -i {name}_{laser_state}.hkl -y {symmetry} -p {cell_file} --output-format=mtz --highres={stats_highres} -o {name}_{laser_state}.mtz
+get_hkl -i {name}_{laser_state}.hkl -y {symmetry} -p {config.cell_file_path} --output-format=mtz --highres={config.stats_highres} -o {name}_{laser_state}.mtz
 
 cp {name}_{laser_state}.mtz {mtz_location}
 """

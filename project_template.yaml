@@ -12,20 +12,15 @@ allowed_laser_states:
 list_file_directory_path: "/das/work/p21/p21958/list-files"
 initial_geometry_file_path: "/das/home/ext-lane_t/opt/mmCPD-reduction/cpdred/swissfel/data/JF06T08V07.geom"
 cell_file_path: "/das/home/ext-lane_t/opt/mmCPD-reduction/cpdred/swissfel/data/X3S1.cell"
-cell:
-  - 83.22
-  - 83.22
-  - 89.97
-  - 90.0
-  - 90.0
-  - 120.0
 
 geometry_summary_path: "/das/home/ext-lane_t/opt/mmCPD-reduction/cpdred/swissfel/data/geometry_summary.csv"
 geometry_optimization_directory: "/das/work/p21/p21958/geometry-optimization"
 
-# Indexing parameters
+# SHARED
 crystfel_version: "0.11.1"
 number_of_cores: 36
+
+# INDEXING
 peak_finding_method: "peakfinder8"
 peak_threshold: 50
 min_snr: 5.0
@@ -36,3 +31,12 @@ indexing_method: "xgandalf-latt-cell"
 integration_radius: "2,3,6"
 integration_method: "rings-grad"
 local_bg_radius: 4
+
+# MERGING
+partiality_model: "unity"
+partialator_iterations: 3
+pushres: 2.2
+max_adu: 450000
+
+# STATS
+stats_highres: 2.2

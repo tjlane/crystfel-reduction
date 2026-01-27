@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 from . import utils
+from . import swissfel
 
 
-
-def geometry_file_for_run(run_number: int) -> Path:
+def geometry_file_for_run(run_number: int, config: swissfel.SwissFELConfig) -> Path:
 
     geometry_summary = pd.read_csv(config.geometry_summary)
     optimized_base_path = config.geometry_optimization_directory

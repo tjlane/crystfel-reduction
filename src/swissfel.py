@@ -1,9 +1,8 @@
 
 from pathlib import Path
-from glob import glob
 
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pathlib import Path
 
 
@@ -17,19 +16,14 @@ class SwissFELConfig(BaseModel):
     initial_geometry_file_path: Path
     cell_file_path: Path
 
-    cell: list[float] = Field(
-        ...,
-        min_length=6,
-        max_length=6,
-        description="Unit cell parameters: [a, b, c, alpha, beta, gamma]"
-    )
-
     geometry_summary_path: Path
     geometry_optimization_directory: Path
 
-    # Indexing parameters
+    # general processing
     crystfel_version: str
     number_of_cores: int
+
+    # indexing
     peak_finding_method: str
     peak_threshold: int
     min_snr: float
@@ -37,12 +31,18 @@ class SwissFELConfig(BaseModel):
     min_resolution: int
     max_resolution: int
     indexing_method: str
-    use_multi: bool
-    use_retry: bool
-    check_peaks: bool
     integration_radius: str
     integration_method: str
     local_bg_radius: int
+
+    # merging
+    partiality_model: str
+    partialator_iterations: int
+    pushres: float
+    max_adu: int
+
+    # stats
+    stats_highres: float
     
 
 def get_list_files_for_run(run_number: int, config: SwissFELConfig, laser_state: str = "all") -> list[Path]:
