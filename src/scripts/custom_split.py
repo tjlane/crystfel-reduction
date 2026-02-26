@@ -11,7 +11,7 @@ def find_event_integers(filename: str) -> list[int]:
     matches = []
 
     with open(filename, 'r') as file:
-        for line_number, line in enumerate(file, 1):
+        for _, line in enumerate(file, 1):
             for match in re.findall(pattern, line):
                 number_str = match.split('//')[1]
                 try:

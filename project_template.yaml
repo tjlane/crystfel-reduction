@@ -3,6 +3,7 @@
 beamline: "alvra"
 experiment_id: "p21958"
 detector_geometry_name: "JF06T08V07"
+crystfel_version: "0.11.1"
 
 allowed_laser_states:
  - "light"
@@ -16,27 +17,30 @@ cell_file_path: "/das/home/ext-lane_t/opt/mmCPD-reduction/cpdred/swissfel/data/X
 geometry_summary_path: "/das/home/ext-lane_t/opt/mmCPD-reduction/cpdred/swissfel/data/geometry_summary.csv"
 geometry_optimization_directory: "/das/work/p21/p21958/geometry-optimization"
 
-# SHARED
-crystfel_version: "0.11.1"
-number_of_cores: 36
+stream_file_directory: "/sf/alvra/data/p21958/work/final_stream_files"
+merging_directory: "/sf/alvra/data/p21958/work/final_merging"
+mtz_directory: "/das/work/p21/p21958/final_mtzs"
 
-# INDEXING
-peak_finding_method: "peakfinder8"
-peak_threshold: 50
-min_snr: 5.0
-min_pixel_count: 2
-min_resolution: 85
-max_resolution: 3000
-indexing_method: "xgandalf-latt-cell"
-integration_radius: "2,3,6"
-integration_method: "rings-grad"
-local_bg_radius: 4
 
-# MERGING
-partiality_model: "unity"
-partialator_iterations: 3
-pushres: 2.2
-max_adu: 450000
+indexing:
+  peak_finding_method: "peakfinder8"
+  peak_threshold: 50
+  min_snr: 5.0
+  min_pixel_count: 2
+  min_resolution: 85
+  max_resolution: 3000
+  indexing_method: "xgandalf-latt-cell"
+  integration_radius: "2,3,6"
+  integration_method: "rings-grad"
+  local_bg_radius: 4
 
-# STATS
-stats_highres: 2.2
+merging:
+  use_online_streams: false
+  symmetry: "mmm"
+  partiality_model: "unity"
+  partialator_iterations: 3
+  pushres: 2.2
+  max_adu: 450000
+
+stats:
+  stats_highres: 2.2

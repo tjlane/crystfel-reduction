@@ -4,37 +4,44 @@ import os
 import argparse
 import tempfile
 from pathlib import Path
+from typing import Literal
 
 from .. import utils
-from .. import swissfel
+from .. import config
 
-# TODO: online vs offline mode (!)
 
+# TODO: move elsewhere?
 def launch_merge_job(
         *,
         name: str,
         runs: list[int],
-        stream_location: Path,
-        results_location: Path,
-        mtz_location: Path,
-        laser_state: str,
-        config: swissfel.SwissFELConfig
+        laser_state: Literal["light", "dark"],
+        config: config.SwissFELConfig,
+        queue: str = "week",
     ):
-
-    queue = "week"
-    symmetry = "mmm"
-    if laser_state not in ["light", "dark"]:
+    
+    if laser_state not in config.allowed_laser_states:
         raise ValueError("`laser_state` can only be `light` or `dark`")
     
-    list_of_stream_paths = " ".join([f"{stream_location}/run{run:04d}/run{run:04d}-{laser_state}.stream " for run in runs])
-    combine_stream_command = "cat " + list_of_stream_paths + f"> {name}_combined_{laser_state}.stream"
+    list_of_stream_paths: list[Path] = []
+    if config.use_online_streams:
+        for run in runs:
+            list_of_stream_paths.extend(Path(f"/sf/{config.beamline}/data/{config.experiment_id}/res/run{run:04d}-*/index/{laser_state}/acq*.stream").glob())
+    else:
+        list_of_stream_paths = [Path(f"{config.stream_file_directory}/run{run:04d}/run{run:04d}-{laser_state}.stream") for run in runs]
+
+    print(f"Wanted: {len(list_of_stream_paths)}")
+    print(f"Found: {sum([p.exists() for p in list_of_stream_paths])} on disk")
+
+    stream_paths: str = " ".join()
+    combine_stream_command = "cat " + stream_paths + f"> {name}_combined_{laser_state}.stream"
 
     sbatch_script_text = f"""#!/bin/sh
 
 module purge
 module load crystfel/{config.crystfel_version}
 
-WD={results_location}/{name}
+WD={config.merging_directory}/{name}
 echo $WD
 mkdir -p $WD
 cd $WD
@@ -43,18 +50,18 @@ cd $WD
 
 partialator -j {config.number_of_cores} -i {name}_combined_{laser_state}.stream -o {name}_{laser_state}.hkl -y {symmetry} --model={config.partiality_model} --iterations={config.partialator_iterations} --push-res={config.pushres} --max-adu={config.max_adu} > partialator.log 2>&1
 
-check_hkl {name}_{laser_state}.hkl -y {symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --shell-file={name}_{laser_state}_check.dat
+check_hkl {name}_{laser_state}.hkl -y {config.symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --shell-file={name}_{laser_state}_check.dat
 
-compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --fom=rsplit --shell-file={name}_{laser_state}_rsplit.dat
-compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --fom=ccstar --shell-file={name}_{laser_state}_ccstar.dat
-compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --fom=cc     --shell-file={name}_{laser_state}_cc.dat
+compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {config.symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --fom=rsplit --shell-file={name}_{laser_state}_rsplit.dat
+compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {config.symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --fom=ccstar --shell-file={name}_{laser_state}_ccstar.dat
+compare_hkl {name}_{laser_state}.hkl1 {name}_{laser_state}.hkl2 -y {config.symmetry} -p {config.cell_file_path} --highres={config.stats_highres} --fom=cc     --shell-file={name}_{laser_state}_cc.dat
 
 mkdir stats
 mv {name}_{laser_state}_check.dat {name}_{laser_state}_rsplit.dat {name}_{laser_state}_ccstar.dat {name}_{laser_state}_cc.dat stats/
 
-get_hkl -i {name}_{laser_state}.hkl -y {symmetry} -p {config.cell_file_path} --output-format=mtz --highres={config.stats_highres} -o {name}_{laser_state}.mtz
+get_hkl -i {name}_{laser_state}.hkl -y {config.symmetry} -p {config.cell_file_path} --output-format=mtz --highres={config.stats_highres} -o {name}_{laser_state}.mtz
 
-cp {name}_{laser_state}.mtz {mtz_location}
+cp {name}_{laser_state}.mtz {config.mtz_directory}
 """
     
     with tempfile.TemporaryDirectory() as tempdir:
@@ -71,31 +78,19 @@ cp {name}_{laser_state}.mtz {mtz_location}
 
 def main():
 
-    STATS_HIGRES=1.4
-
-    STREAM_LOCATION="/sf/alvra/data/p21958/work/final_stream_files"
-    # STREAM_LOCATION="/sf/alvra/data/p21958/work/stream_optimization/int_rad_2-3-6"
-    RESULTS_LOCATION="/sf/alvra/data/p21958/work/final_merging"
-    # RESULTS_LOCATION="/sf/alvra/data/p21958/work/merging-optimization"
-    MTZ_LOCATION="/das/work/p21/p21958/final_mtzs"
-    # MTZ_LOCATION="/das/work/p21/p21958/test_mtzs"
-
     parser = argparse.ArgumentParser()
     parser.add_argument("name")
     parser.add_argument("runs", type=int, nargs="+")
-    parser.add_argument("--laser", default="light", choices=["light", "dark"])
+    parser.add_argument("--config", type=Path)
     args = parser.parse_args()
 
-    launch_merge_job(
-        name=args.name,
-        runs=args.runs,
-        cell_file=constants.CELL_FILE_PATH,
-        stats_highres=STATS_HIGRES,
-        stream_location=STREAM_LOCATION,
-        results_location=RESULTS_LOCATION,
-        mtz_location=MTZ_LOCATION,
-        laser_state=args.laser,
-    )
+    for laser_state in ["dark", "light"]:
+        launch_merge_job(
+            name=args.name,
+            runs=args.runs,
+            laser_state=laser_state,
+            config=args.config,
+        )
 
 
 if __name__ == "__main__":

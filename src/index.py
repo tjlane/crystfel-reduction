@@ -4,14 +4,15 @@ import tempfile
 from pathlib import Path
 
 from . import utils
-from . import swissfel
+from . import config
 
 
-def launch_indexing_job(*, list_file: Path, geometry_file: Path, output_stream_path: Path, config: swissfel.SwissFELConfig) -> int:
+def launch_indexing_job(*, list_file: Path, geometry_file: Path, output_stream_path: Path, config: config.SwissFELConfig) -> int:
 
     with tempfile.TemporaryDirectory() as tempdir:
         script_path = os.path.join(tempdir, "indexing_sbatch.sh")
 
+        idx = config.indexing
         script_content = f"""#!/bin/sh
 
 module purge
@@ -21,18 +22,17 @@ indexamajig -i {list_file} \\
   --output={output_stream_path} \\
   --geometry={geometry_file} \\
   --pdb={config.cell_file_path} \\
-  -j {config.number_of_cores} \\
-  --peaks={config.peak_finding_method} \\
-  --threshold={config.peak_threshold} \\
-  --min-snr={config.min_snr} \\
-  --min-pix-count={config.min_pixel_count} \\
-  --min-res={config.min_resolution} \\
-  --max-res={config.max_resolution} \\
-  --indexing={config.indexing_method} \\
-  
-  --int-radius={config.integration_radius} \\
-  --integration={config.integration_method} \\
-  --local-bg-radius={config.local_bg_radius} \\
+  -j $(nproc) \\
+  --peaks={idx.peak_finding_method} \\
+  --threshold={idx.peak_threshold} \\
+  --min-snr={idx.min_snr} \\
+  --min-pix-count={idx.min_pixel_count} \\
+  --min-res={idx.min_resolution} \\
+  --max-res={idx.max_resolution} \\
+  --indexing={idx.indexing_method} \\
+  --int-radius={idx.integration_radius} \\
+  --integration={idx.integration_method} \\
+  --local-bg-radius={idx.local_bg_radius} \\
   --multi --retry --check-peaks
 """
 
