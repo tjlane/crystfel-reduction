@@ -5,6 +5,8 @@ import yaml
 from pydantic import BaseModel
 
 
+
+
 class IndexingConfig(BaseModel):
     peak_finding_method: str
     peak_threshold: int
@@ -16,6 +18,15 @@ class IndexingConfig(BaseModel):
     integration_radius: str
     integration_method: str
     local_bg_radius: int
+
+
+
+class GeometryOptimizationConfig(BaseModel):
+    sample_size: int
+    step_size: float
+    clen_center: float
+    clen_half_range: int
+    run_range: tuple[int, int]
 
 
 class MergingConfig(BaseModel):
@@ -50,6 +61,7 @@ class SwissFELConfig(BaseModel):
     mtz_directory: Path
 
     indexing: IndexingConfig
+    geometry_optimization: GeometryOptimizationConfig
     merging: MergingConfig
     stats: StatsConfig
 

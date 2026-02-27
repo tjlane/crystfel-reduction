@@ -21,11 +21,10 @@ stream_file_directory: "/sf/alvra/data/p21958/work/final_stream_files"
 merging_directory: "/sf/alvra/data/p21958/work/final_merging"
 mtz_directory: "/das/work/p21/p21958/final_mtzs"
 
-
 indexing:
   peak_finding_method: "peakfinder8"
   peak_threshold: 50
-  min_snr: 5.0
+  min_snr: "5.0"
   min_pixel_count: 2
   min_resolution: 85
   max_resolution: 3000
@@ -33,6 +32,13 @@ indexing:
   integration_radius: "2,3,6"
   integration_method: "rings-grad"
   local_bg_radius: 4
+
+geometry_optimization:
+  sample_size: 10000
+  step_size: "0.00005"
+  clen_center: "0.09450"
+  clen_half_range: 18
+  run_range: [8, 125]
 
 merging:
   use_online_streams: false
