@@ -21,7 +21,7 @@ def launch_merge_job(
     ):
     
     if laser_state not in config.allowed_laser_states:
-        raise ValueError("`laser_state` can only be `light` or `dark`")
+        raise ValueError(f"`laser_state` can only be {config.allowed_laser_states}")
     
     list_of_stream_paths: list[Path] = []
     if config.use_online_streams:
