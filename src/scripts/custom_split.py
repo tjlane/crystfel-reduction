@@ -1,9 +1,13 @@
-import re
-import os
-import glob
-import subprocess
-import sys
+#!/usr/bin/env python
 
+import re
+import argparse
+import subprocess
+import tempfile
+from glob import glob
+from pathlib import Path
+
+from .. import config
 
 
 def find_event_integers(filename: str) -> list[int]:
@@ -23,20 +27,19 @@ def find_event_integers(filename: str) -> list[int]:
     return matches
 
 
+def glob_streams(tag: str, cfg: config.SwissFELConfig, which: str) -> list[str]:
+    pattern = f"/sf/{cfg.beamline}/data/{cfg.experiment_id}/res/run*-{tag}/index/{which}/acq*.stream"
+    return glob(pattern)
 
-def glob_streams(tag: str, which: str) -> list[str]:
-    pattern = f"/sf/alvra/data/p21958/res/run*-{tag}/index/{which}/acq*.stream"  
-    return glob.glob(pattern)
 
+def make_list(tag: str, cfg: config.SwissFELConfig):
 
-def make_list(tag: str):
-
-    with open("./custom-split.lst", "w") as f: # TODO: yaml
-        for which in ["dark", "light"]: # TODO: yaml
+    with open("./custom-split.lst", "w") as f:
+        for which in ["dark", "light"]:
             i = 0
 
-            for stream in glob_streams(tag, which):
-                stream = os.path.abspath(stream)
+            for stream in glob_streams(tag, cfg, which):
+                stream = str(Path(stream).resolve())
                 pattern = r'Image filename:\s*(\S+)\s*Event:\s*(\S+)'
 
                 with open(stream, "r") as stream_f:
@@ -49,40 +52,29 @@ def make_list(tag: str):
             print(which, i)
 
 
-def submit_partialator_job(tag):
+def submit_partialator_job(tag: str, cfg: config.SwissFELConfig):
 
-    pattern = f"/sf/alvra/data/p21958/res/run*-{tag}/index/*/acq*.stream"
+    pattern = f"/sf/{cfg.beamline}/data/{cfg.experiment_id}/res/run*-{tag}/index/*/acq*.stream"
+    mrg = cfg.merging
 
-    text = f"""#!/bin/bash
-#command for list with path:
+    script_text = f"""#!/bin/bash
 #SBATCH --job-name crystfel
-#SBATCH  -p week
+#SBATCH -p week
 #SBATCH --time 3-00:00:00
 #SBATCH --exclusive
-#
 
-RUN={tag}
-PUSHRES="2.2"
+module purge
+module load crystfel/{cfg.crystfel_version}
 
-module clear
-module use MX
-module load crystfel/0.10.2
-
-
-sbatch -p day --exclusive --reservation=p21958_2025-05-20 <<EOF
-#!/bin/sh
-
-source /etc/scripts/mx_fel.sh
-NPROC=$(grep proc /proc/cpuinfo | wc -l )
-
-partialator -j \$NPROC -i {pattern} --custom-split=custom-split.lst -o $RUN-$PUSHRES.hkl -y mmm --model=unity --iterations=1 --push-res=$PUSHRES > partialator_$RUN-$PUSHRES.log 2>&1
-
-EOF
+partialator -j $(nproc) -i {pattern} --custom-split=custom-split.lst \\
+  -o {tag}.hkl -y {mrg.symmetry} --model={mrg.partiality_model} \\
+  --iterations={mrg.partialator_iterations} --push-res={mrg.pushres} \\
+  --max-adu={mrg.max_adu} > partialator_{tag}.log 2>&1
 """
 
-    filename = "partialator_slurm_job.sh"
-    with open(filename, 'w') as f:
-        f.write(text)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as f:
+        f.write(script_text)
+        filename = f.name
 
     try:
         result = subprocess.run(["sbatch", filename], check=True, capture_output=True, text=True)
@@ -93,15 +85,17 @@ EOF
         print(e.stderr)
 
 
-def main(tag):
-    make_list(tag)
-    submit_partialator_job(tag)
+def main():
+    parser = argparse.ArgumentParser(description="Build a custom-split list and submit partialator.")
+    parser.add_argument("config", type=Path, help="Path to the YAML config file.")
+    parser.add_argument("tag", help="Run tag string.")
+    args = parser.parse_args()
+
+    cfg = config.SwissFELConfig.from_yaml(args.config)
+
+    make_list(args.tag, cfg)
+    submit_partialator_job(args.tag, cfg)
 
 
-
-# Example usage:
-if __name__ == '__main__':
-    tag = sys.argv[-1]
-    print(tag)
-    main(tag)
-
+if __name__ == "__main__":
+    main()

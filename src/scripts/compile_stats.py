@@ -1,6 +1,12 @@
-import pandas as pd
-from pathlib import Path
+#!/usr/bin/env python
+
+import argparse
 from glob import glob
+from pathlib import Path
+
+import pandas as pd
+
+from .. import config
 
 
 def load_stats_by_shell(stats_directory: str, tag: str) -> pd.DataFrame:
@@ -13,10 +19,10 @@ def load_stats_by_shell(stats_directory: str, tag: str) -> pd.DataFrame:
     for p in [check_stats_file, rsplit_file, cc_file, ccstar_file]:
         if not p.exists():
             raise IOError(f"cannot find {str(p)}")
-        
+
     join_column = 'Center 1/nm'
     colspec = [(0,11), (11,24)]
-        
+
     base_data = pd.read_fwf(check_stats_file, na_values=["-nan"])
     rsplit_data = pd.read_fwf(rsplit_file, na_values=["-nan"]).rename(columns={'1/d centre': join_column})
     cc_data = pd.read_fwf(cc_file, colspecs=colspec, na_values=["-nan"]).rename(columns={'1/d centr': join_column})
@@ -36,11 +42,16 @@ def count_number_of_crystals_merged(stream_file: Path) -> int:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Compile per-shell statistics for all merged datasets.")
+    parser.add_argument("config", type=Path, help="Path to the YAML config file.")
+    args = parser.parse_args()
 
-    # right now just computes all
-    base_path = Path("/das/work/p21/p21958")
+    cfg = config.SwissFELConfig.from_yaml(args.config)
 
-    for dataset in glob(str(base_path / "final_merging/*")):
+    stats_output_dir = cfg.merging_directory.parent / "final_stats"
+    stats_output_dir.mkdir(exist_ok=True)
+
+    for dataset in glob(str(cfg.merging_directory / "*")):
         basename = Path(dataset).name
         stats_path = Path(dataset) / "stats"
         for tag in [f"{basename}_light", f"{basename}_dark"]:
@@ -48,13 +59,12 @@ def main():
 
                 laser_state = tag.split("_")[-1]
                 n_indexed = count_number_of_crystals_merged(Path(dataset) / f"{basename}_combined_{laser_state}.stream")
-                
+
                 df = load_stats_by_shell(stats_path, tag)
-                df.to_csv(base_path / "final_stats" / f"{tag}_stats_by_shell.csv", index=False)
+                df.to_csv(stats_output_dir / f"{tag}_stats_by_shell.csv", index=False)
 
                 print(f"Processed {tag}\t{n_indexed}")
 
 
 if __name__ == "__main__":
     main()
-
