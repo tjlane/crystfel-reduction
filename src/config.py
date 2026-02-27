@@ -5,8 +5,6 @@ import yaml
 from pydantic import BaseModel
 
 
-
-
 class IndexingConfig(BaseModel):
     peak_finding_method: str
     peak_threshold: int
@@ -18,7 +16,6 @@ class IndexingConfig(BaseModel):
     integration_radius: str
     integration_method: str
     local_bg_radius: int
-
 
 
 class GeometryOptimizationConfig(BaseModel):
@@ -72,7 +69,7 @@ class SwissFELConfig(BaseModel):
         return cls.model_validate(data)
 
 
-def get_list_files_for_run(run_number: int, config: SwissFELConfig, laser_state: str = "all") -> list[Path]:
+def get_list_files_for_run(*, run_number: int, config: SwissFELConfig, laser_state: str = "all") -> list[Path]:
 
     if laser_state not in config.allowed_laser_states:
         raise RuntimeError()
@@ -85,20 +82,20 @@ def get_list_files_for_run(run_number: int, config: SwissFELConfig, laser_state:
     return glob_pattern.glob()
 
 
-def get_combined_list_files_for_run(run_number: int, config: SwissFELConfig, laser_state: str = "all") -> list:
+def get_combined_list_files_for_run(*, run_number: int, config: SwissFELConfig, laser_state: str = "all") -> list:
 
     list_file_dir = config.list_file_directory_path
     list_file_path = list_file_dir / Path(f"combined_run{run_number:04d}-{laser_state}.lst")
 
     with list_file_path.open("w") as combined_list_file:
-        for list_file in get_list_files_for_run(run_number, laser_state=laser_state):
+        for list_file in get_list_files_for_run(run_number=run_number, config=config, laser_state=laser_state):
             with open(list_file) as infile:
                 combined_list_file.write(infile.read())
 
     return list_file_path
 
 
-def get_list_files_for_tag(tag_string: str, config: SwissFELConfig, laser_state: str = "all") -> list:
+def get_list_files_for_tag(*, tag_string: str, config: SwissFELConfig, laser_state: str = "all") -> list:
 
     if laser_state not in config.allowed_laser_states:
         raise RuntimeError()

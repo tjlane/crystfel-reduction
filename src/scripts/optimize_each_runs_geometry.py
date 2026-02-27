@@ -7,11 +7,7 @@ import numpy as np
 from cpdred.swissfel.proc import geometry, datalist, constants
 
 
-BASE_LOCATION = f"/sf/{constants.BEAMLINE}/data/{constants.EXPERIMENT_ID}/work/geometry-optimization"
-SAMPLE_SIZE=10000
-STEP_SIZE=0.00005 # "fine"
-CLENS_TO_SCAN = np.arange(-18, 18) * STEP_SIZE + 0.09450
-RUN_RANGE_OF_INTEREST = (8, 125)
+
 
 
 def main():
