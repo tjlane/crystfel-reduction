@@ -1,4 +1,5 @@
 
+from glob import glob
 from pathlib import Path
 
 import yaml
@@ -79,7 +80,7 @@ def get_list_files_for_run(*, run_number: int, config: SwissFELConfig, laser_sta
 
     glob_pattern = Path(f"/sf/{config.beamline}/data/{config.experiment_id}/raw/run{run_number:04d}-*/data/acq????.{config.detector_geometry_name}.{laser_state}.lst")
 
-    return glob_pattern.glob()
+    return [Path(p) for p in glob(str(glob_pattern))]
 
 
 def get_combined_list_files_for_run(*, run_number: int, config: SwissFELConfig, laser_state: str = "all") -> list:
@@ -105,4 +106,4 @@ def get_list_files_for_tag(*, tag_string: str, config: SwissFELConfig, laser_sta
 
     glob_pattern = Path(f"/sf/{config.beamline}/data/{config.experiment_id}/raw/run????-{tag_string}/data/acq????.{config.detector_geometry_name}.{laser_state}.lst")
 
-    return glob_pattern.glob()
+    return [Path(p) for p in glob(str(glob_pattern))]
